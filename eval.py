@@ -38,15 +38,16 @@ from peft import PeftModel, LoraConfig, prepare_model_for_kbit_training, get_pef
 ROOT_DIR = Path(__file__).parent
 resPath = os.path.join(ROOT_DIR,'result.csv')
 
-device = torch.device("cuda:0")
+device = torch.device("cuda:2")
 
-llm_path = "/home/lenovo/guanwei/SemAD/Meta-Llama-3-8B"
+llm_path = "/home/lenovo/guanwei/Meta-Llama-3-8B"
 
-step = 'N'
-peft_path = "/home/lenovo/guanwei/SemAD/llama3-8b-int4-dolly_"+ str(step)
+step = 15550
+# step = 'N'
+peft_path = "/home/lenovo/guanwei/LLM_pred/models/llama3-8b-int4-dolly_"+ str(step)
 
-# data_path = '/home/lenovo/guanwei/SemAD/test_data.csv'
-data_path = '/home/lenovo/guanwei/SemAD/eval_data.csv'
+data_path = '/home/lenovo/guanwei/LLM_pred/test_data.csv'
+# data_path = '/home/lenovo/guanwei/LLM_pred/eval_data.csv'
 
 max_sequence_len = 1024
 
@@ -132,12 +133,14 @@ with torch.no_grad():
         
         # trace_batch = ['Log in, Select update player details, Select player, Update player information, Submit changes']
         
-        llm_ids = tokenizer(list(trace_batch), return_tensors="pt", max_length=max_sequence_len, padding=True, truncation=True).input_ids
+        inputs = tokenizer(list(trace_batch), return_tensors="pt", max_length=max_sequence_len, padding=True, truncation=True)
+        llm_ids = inputs.input_ids
+
         target_llm_ids = torch.cat([llm_ids[:,1:], torch.full((len(this_batch_indexes),1), tokenizer.eos_token_id, device=llm_ids.device)], dim=-1).numpy()    # add eos token
 
-        llm_ids=llm_ids.to(device)
+        inputs = inputs.to(device)
 
-        output = model(llm_ids)
+        output = model(**inputs)
 
         outputs = output.logits
         
@@ -196,8 +199,8 @@ print(run_time)
 
 event_gt = np.concatenate(event_gt)
 
-# threshold = 0.85
-threshold = None
+threshold = 0.9
+# threshold = None
 
 if threshold is None:
     trace_p, trace_r, trace_f1, trace_aupr, trace_threshold = cal_best_PRF(trace_gt, trace_level_score)

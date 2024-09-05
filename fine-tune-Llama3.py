@@ -44,15 +44,15 @@ def print_number_of_trainable_model_parameters(model):
     return params
 
 
-device = torch.device("cuda:0")
+device = torch.device("cuda:1")
 
-llm_path = "/home/lenovo/guanwei/SemAD/Meta-Llama-3-8B"
+llm_path = "/home/lenovo/guanwei/Meta-Llama-3-8B"
 
-data_path='/home/lenovo/guanwei/SemAD/training_data.csv'
+data_path='/home/lenovo/guanwei/LLM_pred/training_data.csv'
 
 data_name = os.path.splitext(os.path.basename(data_path))[0]
 
-ft_model_name = "/home/lenovo/guanwei/SemAD/llama3-8b-int4-dolly"
+ft_model_name = "/home/lenovo/guanwei/LLM_pred/models/llama3-8b-int4-dolly"
 
 
 max_sequence_len = 512
@@ -127,14 +127,15 @@ for epoch in range(epochs):
         # trace_batch = trace_batch_
         
         optimizer.zero_grad()
-        llm_ids = tokenizer(list(trace_batch), return_tensors="pt", max_length=max_sequence_len, padding=True, truncation=True).input_ids.to(device)
+        inputs = tokenizer(list(trace_batch), return_tensors="pt", max_length=max_sequence_len, padding=True, truncation=True).to(device)
+        llm_ids = inputs.input_ids
         target_llm_ids = torch.cat([llm_ids[:,1:], torch.full((batch_size,1), tokenizer.eos_token_id, device=llm_ids.device)], dim=-1)    # add eos token
         
         # for j in range(len(trace_batch)):
         #     if  trace_batch[j].count(',') != (llm_ids[j]==11).sum().detach().cpu():
         #         print('jj')
 
-        output = model(llm_ids)
+        output = model(**inputs)
             
         outputs = output.logits
 
